@@ -35,7 +35,7 @@ gulp.task('docs', function () {
 	// var config = gitdown.config;
 	// config.gitinfo.gitPath = './docs';
 	// gitdown.config = config;
-	
+
 	// return gitdown
 	// 	.write('README.md');
 });
@@ -59,7 +59,7 @@ gulp.task('test', function () {
 		  action: 'run'
 		}))
 		.on('error', function(err) {
-		  // Make sure failed tests cause gulp to exit non-zero 
+		  // Make sure failed tests cause gulp to exit non-zero
 		  throw err;
 		});
 });
@@ -71,7 +71,7 @@ gulp.task('testWatch', function () {
 		  action: 'watch'
 		}))
 		.on('error', function(err) {
-		  // Make sure failed tests cause gulp to exit non-zero 
+		  // Make sure failed tests cause gulp to exit non-zero
 		  throw err;
 		});
 });

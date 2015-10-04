@@ -39,6 +39,7 @@ Reductio is a library for generating Crossfilter reduce functions and applying t
     * [groupAll aggregations](#aggregations-groupall-aggregations)
         * [reductio.<b>groupAll</b>(<i>groupingFunction</i>)](#aggregations-groupall-aggregations-reductio-b-groupall-b-i-groupingfunction-i-)
     * [Chaining aggregations](#aggregations-chaining-aggregations)
+    * [Downsample](#downsample)
 * [Example](#example)
 
 
@@ -394,6 +395,30 @@ As seen above, aggregations can be chained on a given instance of reductio. For 
 reductio().count(true)
     .sum(function(d) { return d.bar; })
     .avg(true)(group);
+```
+
+<h2 id="downsample">Downsample</h2>
+When creating charts it's often good to draw only what is needed (say as many points as the chart has pixel width). With reductio downsample you can downsample your data so that the group.all function returns only as many data points as you need.
+
+```javascript
+reducer = reductio()
+    .sum('foo')
+    .downsample('sum')
+    .threshold(1000);
+reducer(group);
+```
+
+note that if the reducers threshold changes at any point that change will be reflected in subsequent `group.all` calls.
+
+```javascript
+reducer = reductio()
+    .sum('foo')
+    .downsample('sum')
+    .threshold(1000);
+reducer(group);
+console.log(group.all().length); // 1000
+reducer.threshold(500);
+console.log(group.all().length) // 500
 ```
 
 <h1 id="example">Example</h1>

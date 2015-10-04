@@ -3,7 +3,8 @@
 var reductio_build = require('./build.js');
 var reductio_accessors = require('./accessors.js');
 var reductio_parameters = require('./parameters.js');
-var crossfilter = (typeof window !== "undefined" ? window.crossfilter : typeof global !== "undefined" ? global.crossfilter : null);
+var reductio_downsample = require('./downsample.js');
+var crossfilter = (typeof window !== "undefined" ? window['crossfilter'] : typeof global !== "undefined" ? global['crossfilter'] : null);
 
 function reductio() {
 	var parameters = reductio_parameters();
@@ -66,6 +67,8 @@ function reductio() {
 			group.reduce(funcs.reduceAdd, funcs.reduceRemove, funcs.reduceInitial);
 		}
 
+		reductio_downsample.build(group, parameters);
+
 		return group;
 	}
 
@@ -75,8 +78,9 @@ function reductio() {
 }
 
 module.exports = reductio;
+
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./accessors.js":2,"./build.js":6,"./parameters.js":16}],2:[function(require,module,exports){
+},{"./accessors.js":2,"./build.js":6,"./downsample.js":8,"./parameters.js":18}],2:[function(require,module,exports){
 var reductio_parameters = require('./parameters.js');
 
 function accessor_build(obj, p) {
@@ -91,7 +95,7 @@ function accessor_build(obj, p) {
 		if( typeof v === 'string' ) {
 			// Rewrite to a function
 			var tempValue = v;
-			var func = function (d) { return d[tempValue]; }
+			var func = function (d) { return d[tempValue]; };
 			return func;
 		} else {
 			return v;
@@ -103,7 +107,7 @@ function accessor_build(obj, p) {
 		if( typeof v === 'string' ) {
 			// Rewrite to a function
 			var tempValue = v;
-			var func = function (d) { return +d[tempValue]; }
+			var func = function (d) { return +d[tempValue]; };
 			return func;
 		} else {
 			return v;
@@ -118,7 +122,7 @@ function accessor_build(obj, p) {
 
 	obj.sum = function(value) {
 		if (!arguments.length) return p.sum;
-		
+
 		value = accessorifyNumeric(value);
 
 		p.sum = value;
@@ -308,6 +312,18 @@ function accessor_build(obj, p) {
 		p.groupAll = groupTest;
 		return obj;
 	};
+
+	obj.downsample = function(downsample) {
+		if(!arguments.length) return p.downsample;
+		p.downsample = accessorifyNumeric(downsample);
+		return obj;
+	};
+
+	obj.threshold = function(threshold) {
+		if(!arguments.length) return p.threshold;
+		p.threshold = threshold;
+		return obj;
+	};
 }
 
 var reductio_accessors = {
@@ -316,7 +332,7 @@ var reductio_accessors = {
 
 module.exports = reductio_accessors;
 
-},{"./parameters.js":16}],3:[function(require,module,exports){
+},{"./parameters.js":18}],3:[function(require,module,exports){
 var reductio_alias = {
 	initial: function(prior, path, obj) {
 		return function (p) {
@@ -562,7 +578,7 @@ var reductio_build = {
 
 module.exports = reductio_build;
 
-},{"./alias.js":3,"./aliasProp.js":4,"./avg.js":5,"./count.js":7,"./exception-count.js":8,"./exception-sum.js":9,"./filter.js":10,"./histogram.js":11,"./max.js":12,"./median.js":13,"./min.js":14,"./nest.js":15,"./std.js":17,"./sum-of-squares.js":18,"./sum.js":19,"./value-count.js":20,"./value-list.js":21}],7:[function(require,module,exports){
+},{"./alias.js":3,"./aliasProp.js":4,"./avg.js":5,"./count.js":7,"./exception-count.js":9,"./exception-sum.js":10,"./filter.js":11,"./histogram.js":12,"./max.js":14,"./median.js":15,"./min.js":16,"./nest.js":17,"./std.js":19,"./sum-of-squares.js":20,"./sum.js":21,"./value-count.js":22,"./value-list.js":23}],7:[function(require,module,exports){
 var reductio_count = {
 	add: function(prior, path) {
 		return function (p, v, nf) {
@@ -590,6 +606,25 @@ var reductio_count = {
 
 module.exports = reductio_count;
 },{}],8:[function(require,module,exports){
+var largestTriangleThreeBuckets = require('./largest-triangle-three-buckets');
+
+function downsample(group, p) {
+    if (p.downsample) {
+        var threshold = p.threshold || 1000;
+        var all = group.all;
+        group.all = function(){
+            return largestTriangleThreeBuckets(all(), p.threshold, p.downsample);
+        };
+    }
+}
+
+var reductio_downsample = {
+    build: downsample
+};
+
+module.exports = reductio_downsample;
+
+},{"./largest-triangle-three-buckets":13}],9:[function(require,module,exports){
 var reductio_exception_count = {
 	add: function (a, prior, path) {
 		var i, curr;
@@ -627,7 +662,7 @@ var reductio_exception_count = {
 };
 
 module.exports = reductio_exception_count;
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var reductio_exception_sum = {
 	add: function (a, sum, prior, path) {
 		var i, curr;
@@ -665,7 +700,7 @@ var reductio_exception_sum = {
 };
 
 module.exports = reductio_exception_sum;
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var reductio_filter = {
 	// The big idea here is that you give us a filter function to run on values,
 	// a 'prior' reducer to run (just like the rest of the standard reducers),
@@ -696,9 +731,9 @@ var reductio_filter = {
 
 module.exports = reductio_filter;
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (global){
-var crossfilter = (typeof window !== "undefined" ? window.crossfilter : typeof global !== "undefined" ? global.crossfilter : null);
+var crossfilter = (typeof window !== "undefined" ? window['crossfilter'] : typeof global !== "undefined" ? global['crossfilter'] : null);
 
 var reductio_histogram = {
 	add: function (a, prior, path) {
@@ -744,7 +779,111 @@ var reductio_histogram = {
 
 module.exports = reductio_histogram;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
+/*
+ * The MIT License
+Copyright (c) 2013 by Sveinn Steinarsson
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+/*
+ * Modified by Einar Norðfjörð (@nordfjord) for crossfilter compatibility
+ */
+
+function keyAccessor(d) {
+    return +d.key;
+}
+
+var floor = Math.floor,
+    abs = Math.abs;
+
+function largestTriangleThreeBuckets(data, threshold, accessor) {
+
+    var data_length = data.length;
+    if (threshold >= data_length || threshold === 0) {
+        return data; // Nothing to do
+    }
+
+    var sampled = [],
+        sampled_index = 0;
+
+    // Bucket size. Leave room for start and end data points
+    var every = (data_length - 2) / (threshold - 2);
+
+    var a = 0, // Initially a is the first point in the triangle
+        max_area_point,
+        max_area,
+        area,
+        next_a;
+
+    sampled[sampled_index++] = data[a]; // Always add the first point
+
+    for (var i = 0; i < threshold - 2; i++) {
+
+        // Calculate point average for next bucket (containing c)
+        var avg_x = 0,
+            avg_y = 0,
+            avg_range_start = floor((i + 1) * every) + 1,
+            avg_range_end = floor((i + 2) * every) + 1;
+        avg_range_end = avg_range_end < data_length ? avg_range_end : data_length;
+
+        var avg_range_length = avg_range_end - avg_range_start;
+
+        for (; avg_range_start < avg_range_end; avg_range_start++) {
+            avg_x += keyAccessor(data[avg_range_start]); // * 1 enforces Number (value may be Date)
+            avg_y += accessor(data[avg_range_start].value);
+        }
+        avg_x /= avg_range_length;
+        avg_y /= avg_range_length;
+
+        // Get the range for this bucket
+        var range_offs = floor((i + 0) * every) + 1,
+            range_to = floor((i + 1) * every) + 1;
+
+        // Point a
+        var point_a_x = keyAccessor(data[a]), // Enforce Number (value may be Date)
+            point_a_y = accessor(data[a].value);
+
+        max_area = area = -1;
+
+        for (; range_offs < range_to; range_offs++) {
+            // Calculate triangle area over three buckets
+            area = abs((point_a_x - avg_x) * (accessor(data[range_offs].value) - point_a_y) -
+                (point_a_x - keyAccessor(data[range_offs])) * (avg_y - point_a_y)
+            ) * 0.5;
+            if (area > max_area) {
+                max_area = area;
+                max_area_point = data[range_offs];
+                next_a = range_offs; // Next a is this b
+            }
+        }
+
+        sampled[sampled_index++] = max_area_point; // Pick this point from the bucket
+        a = next_a; // This a is the next a (chosen b)
+    }
+
+    sampled[sampled_index++] = data[data_length - 1]; // Always add last
+
+    return sampled;
+}
+
+module.exports = largestTriangleThreeBuckets;
+
+},{}],14:[function(require,module,exports){
 var reductio_max = {
 	add: function (prior, path) {
 		return function (p, v, nf) {
@@ -780,7 +919,7 @@ var reductio_max = {
 };
 
 module.exports = reductio_max;
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var reductio_median = {
 	add: function (prior, path) {
 		var half;
@@ -830,7 +969,7 @@ var reductio_median = {
 };
 
 module.exports = reductio_median;
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 var reductio_min = {
 	add: function (prior, path) {
 		return function (p, v, nf) {
@@ -866,9 +1005,9 @@ var reductio_min = {
 };
 
 module.exports = reductio_min;
-},{}],15:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 (function (global){
-var crossfilter = (typeof window !== "undefined" ? window.crossfilter : typeof global !== "undefined" ? global.crossfilter : null);
+var crossfilter = (typeof window !== "undefined" ? window['crossfilter'] : typeof global !== "undefined" ? global['crossfilter'] : null);
 
 var reductio_nest = {
 	add: function (keyAccessors, prior, path) {
@@ -928,7 +1067,7 @@ var reductio_nest = {
 
 module.exports = reductio_nest;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var reductio_parameters = function() {
 	return {
 		order: false,
@@ -957,7 +1096,7 @@ var reductio_parameters = function() {
 
 module.exports = reductio_parameters;
 
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var reductio_std = {
 	add: function (prior, path) {
 		return function (p, v, nf) {
@@ -995,7 +1134,7 @@ var reductio_std = {
 };
 
 module.exports = reductio_std;
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var reductio_sum_of_sq = {
 	add: function (a, prior, path) {
 		return function (p, v, nf) {
@@ -1021,7 +1160,7 @@ var reductio_sum_of_sq = {
 };
 
 module.exports = reductio_sum_of_sq;
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var reductio_sum = {
 	add: function (a, prior, path) {
 		return function (p, v, nf) {
@@ -1047,9 +1186,9 @@ var reductio_sum = {
 };
 
 module.exports = reductio_sum;
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 (function (global){
-var crossfilter = (typeof window !== "undefined" ? window.crossfilter : typeof global !== "undefined" ? global.crossfilter : null);
+var crossfilter = (typeof window !== "undefined" ? window['crossfilter'] : typeof global !== "undefined" ? global['crossfilter'] : null);
 
 var reductio_value_count = {
 	add: function (a, prior, path) {
@@ -1092,9 +1231,9 @@ var reductio_value_count = {
 
 module.exports = reductio_value_count;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 (function (global){
-var crossfilter = (typeof window !== "undefined" ? window.crossfilter : typeof global !== "undefined" ? global.crossfilter : null);
+var crossfilter = (typeof window !== "undefined" ? window['crossfilter'] : typeof global !== "undefined" ? global['crossfilter'] : null);
 
 var reductio_value_list = {
 	add: function (a, prior, path) {

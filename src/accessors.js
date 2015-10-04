@@ -12,7 +12,7 @@ function accessor_build(obj, p) {
 		if( typeof v === 'string' ) {
 			// Rewrite to a function
 			var tempValue = v;
-			var func = function (d) { return d[tempValue]; }
+			var func = function (d) { return d[tempValue]; };
 			return func;
 		} else {
 			return v;
@@ -24,7 +24,7 @@ function accessor_build(obj, p) {
 		if( typeof v === 'string' ) {
 			// Rewrite to a function
 			var tempValue = v;
-			var func = function (d) { return +d[tempValue]; }
+			var func = function (d) { return +d[tempValue]; };
 			return func;
 		} else {
 			return v;
@@ -39,7 +39,7 @@ function accessor_build(obj, p) {
 
 	obj.sum = function(value) {
 		if (!arguments.length) return p.sum;
-		
+
 		value = accessorifyNumeric(value);
 
 		p.sum = value;
@@ -227,6 +227,18 @@ function accessor_build(obj, p) {
 	obj.groupAll = function(groupTest) {
 		if(!arguments.length) return p.groupAll;
 		p.groupAll = groupTest;
+		return obj;
+	};
+
+	obj.downsample = function(downsample) {
+		if(!arguments.length) return p.downsample;
+		p.downsample = accessorifyNumeric(downsample);
+		return obj;
+	};
+
+	obj.threshold = function(threshold) {
+		if(!arguments.length) return p.threshold;
+		p.threshold = threshold;
 		return obj;
 	};
 }
